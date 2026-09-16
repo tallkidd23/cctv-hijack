@@ -43,22 +43,24 @@
       cursor: pointer;
     }
 
+    /* High-contrast Night City CCTV Backdrop Video/Canvas */
     #cctvBaseCanvas {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      display: block;
       z-index: 1;
     }
 
+    /* 3D Billboard Quad */
     .billboard-3d-quad {
       position: absolute;
-      top: 14%;
-      left: 48%;
-      width: 38%;
-      height: 48%;
+      top: 13%;
+      left: 45%;
+      width: 42%;
+      height: 52%;
       z-index: 2;
       perspective: 800px;
       transform-style: preserve-3d;
@@ -70,10 +72,10 @@
       height: 100%;
       transform: rotateY(-36deg) rotateX(10deg) skewY(-6deg) scale(0.96);
       transform-origin: left center;
-      border: 3px solid #111;
+      border: 3px solid #1c2a38;
       box-shadow: 
-        0 0 30px rgba(0, 240, 255, 0.35),
-        inset 0 0 20px rgba(0, 0, 0, 0.9);
+        0 0 40px rgba(0, 240, 255, 0.5),
+        inset 0 0 25px rgba(0, 0, 0, 0.95);
       background: #05080c;
       overflow: hidden;
       position: relative;
@@ -132,8 +134,8 @@
       z-index: 10;
       font-size: 11px;
       letter-spacing: 1.5px;
-      color: rgba(255, 255, 255, 0.85);
-      text-shadow: 0 0 4px rgba(0,0,0,0.9);
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 0 6px rgba(0,0,0,0.95);
     }
 
     .hud-top {
@@ -166,8 +168,9 @@
       transform: translate(-50%, -50%);
       width: 40px;
       height: 40px;
-      border: 1px dashed rgba(255, 255, 255, 0.2);
+      border: 1px dashed rgba(255, 255, 255, 0.35);
       pointer-events: none;
+      z-index: 10;
     }
 
     .hud-bottom {
@@ -237,8 +240,10 @@
 <body>
 
   <div class="cctv-stage" id="cctvStage" title="Click to start video with sound">
+    <!-- Rich Animated Night City CCTV Canvas -->
     <canvas id="cctvBaseCanvas"></canvas>
 
+    <!-- 3D Billboard Quad Surface -->
     <div class="billboard-3d-quad" id="billboardQuad">
       <div class="billboard-video-surface" id="billboardSurface">
         
@@ -252,8 +257,6 @@
           <source src="paludarium_stream.mp4" type="video/mp4">
           <source src="https://paludarium.tallkidd.com/paludarium_stream.mp4" type="video/mp4">
         </video>
-
-        <canvas id="billboardFallbackCanvas" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:0;"></canvas>
 
         <div class="jumbotron-led-grid"></div>
         <div class="billboard-bloom"></div>
@@ -278,7 +281,7 @@
           TARGET: JUMBOTRON AD-ARRAY #4
         </div>
         <div style="color: var(--phosphor-cyan);">
-          HIJACK STATUS: <span style="font-weight:bold;" id="hijackStatusText">SIGNAL ACTIVE</span>
+          HIJACK STATUS: <span style="font-weight:bold;" id="hijackStatusText">OVERLAY ACTIVE</span>
         </div>
       </div>
     </div>
@@ -324,97 +327,129 @@
     const ctx = canvas.getContext('2d');
 
     function resizeCanvas() {
-      canvas.width = canvas.parentElement.clientWidth;
-      canvas.height = canvas.parentElement.clientHeight;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
     }
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    // Initial size with fallback
+    canvas.width = canvas.parentElement.clientWidth || 960;
+    canvas.height = canvas.parentElement.clientHeight || 540;
+    setTimeout(resizeCanvas, 200);
 
-    let traffic = Array.from({ length: 18 }, () => ({
-      x: Math.random() * 800,
-      y: 320 + Math.random() * 150,
-      speed: 2 + Math.random() * 4,
-      color: Math.random() > 0.5 ? '#ff3b30' : '#ffe066',
-      size: Math.random() * 3 + 2
+    // Cars on multi-lane avenue
+    let traffic = Array.from({ length: 24 }, (_, i) => ({
+      x: (i * 50) % 960,
+      y: 0.72 + (i % 3) * 0.08,
+      speed: (1.5 + (i % 3) * 1.2),
+      color: i % 2 === 0 ? '#ff3b30' : '#ffe066',
+      size: 4 + (i % 3) * 2
     }));
 
     function drawCityCCTV() {
-      ctx.fillStyle = '#0a0e14';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const w = canvas.width;
+      const h = canvas.height;
 
-      ctx.fillStyle = '#06080b';
-      ctx.fillRect(40, 80, 180, canvas.height);
-      ctx.fillRect(260, 40, 200, canvas.height);
-      
-      ctx.fillStyle = '#0e151e';
-      ctx.beginPath();
-      ctx.moveTo(canvas.width * 0.46, canvas.height * 0.12);
-      ctx.lineTo(canvas.width * 0.88, canvas.height * 0.18);
-      ctx.lineTo(canvas.width * 0.88, canvas.height * 0.68);
-      ctx.lineTo(canvas.width * 0.46, canvas.height * 0.64);
-      ctx.fill();
+      // Dark Sky
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+      skyGrad.addColorStop(0, '#0a1018');
+      skyGrad.addColorStop(1, '#020406');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, w, h);
 
-      ctx.fillStyle = 'rgba(255, 230, 150, 0.15)';
-      for (let i = 0; i < 20; i++) {
-        for (let j = 0; j < 8; j++) {
-          if ((i + j) % 3 === 0) {
-            ctx.fillRect(60 + j * 18, 100 + i * 20, 10, 12);
+      // Left High-Rise Tower
+      ctx.fillStyle = '#0f1722';
+      ctx.fillRect(w * 0.04, h * 0.15, w * 0.18, h * 0.65);
+      ctx.fillStyle = '#090e15';
+      ctx.fillRect(w * 0.04, h * 0.15, w * 0.04, h * 0.65);
+
+      // Left Tower Windows
+      for (let r = 0; r < 14; r++) {
+        for (let c = 0; c < 4; c++) {
+          if ((r + c * 2) % 3 !== 0) {
+            ctx.fillStyle = ((r * 7 + c) % 5 === 0) ? '#ffcc00' : 'rgba(180, 230, 255, 0.45)';
+            ctx.fillRect(w * 0.08 + c * (w * 0.032), h * 0.18 + r * (h * 0.038), w * 0.018, h * 0.022);
           }
         }
       }
 
-      ctx.fillStyle = '#040608';
-      ctx.fillRect(0, canvas.height * 0.72, canvas.width, canvas.height * 0.28);
+      // Mid-Ground Building
+      ctx.fillStyle = '#0d131b';
+      ctx.fillRect(w * 0.25, h * 0.32, w * 0.18, h * 0.48);
 
+      // Concrete Wall / Billboard Mounting Tower
+      ctx.fillStyle = '#141c26';
+      ctx.beginPath();
+      ctx.moveTo(w * 0.43, h * 0.08);
+      ctx.lineTo(w * 0.90, h * 0.12);
+      ctx.lineTo(w * 0.90, h * 0.72);
+      ctx.lineTo(w * 0.43, h * 0.68);
+      ctx.fill();
+
+      // Steel Trusses Supporting Billboard
+      ctx.strokeStyle = '#223040';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.43, h * 0.68);
+      ctx.lineTo(w * 0.43, h * 0.76);
+      ctx.moveTo(w * 0.90, h * 0.72);
+      ctx.lineTo(w * 0.90, h * 0.78);
+      ctx.stroke();
+
+      // Street Asphalt & Sidewalk
+      ctx.fillStyle = '#18202a';
+      ctx.fillRect(0, h * 0.70, w, h * 0.03); // Sidewalk curb
+      ctx.fillStyle = '#06090d';
+      ctx.fillRect(0, h * 0.73, w, h * 0.27); // Street
+
+      // Street center dashed yellow lane markings
+      ctx.fillStyle = '#c9a44c';
+      for (let x = 0; x < w; x += 40) {
+        ctx.fillRect(x, h * 0.83, 20, 2);
+      }
+
+      // Streetlights and glow
+      for (let l = 0; l < 4; l++) {
+        const lx = w * 0.12 + l * (w * 0.26);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(lx, h * 0.58, 3, h * 0.14);
+        ctx.fillStyle = '#fff9d6';
+        ctx.beginPath();
+        ctx.arc(lx + 1, h * 0.58, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Light cone
+        const lightGrad = ctx.createRadialGradient(lx, h * 0.58, 2, lx, h * 0.75, 40);
+        lightGrad.addColorStop(0, 'rgba(255, 240, 180, 0.25)');
+        lightGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = lightGrad;
+        ctx.beginPath();
+        ctx.arc(lx, h * 0.72, 35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Moving Headlights and Taillights
       traffic.forEach(car => {
         car.x += car.speed;
-        if (car.x > canvas.width + 20) car.x = -20;
+        if (car.x > w + 20) car.x = -20;
+        const cy = h * car.y;
         ctx.fillStyle = car.color;
         ctx.shadowColor = car.color;
-        ctx.shadowBlur = 8;
-        ctx.fillRect(car.x, car.y, car.size * 2, car.size);
+        ctx.shadowBlur = 10;
+        ctx.fillRect(car.x, cy, car.size * 2.2, car.size);
         ctx.shadowBlur = 0;
       });
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
-      for (let k = 0; k < 6; k++) {
-        const lineY = Math.random() * canvas.height;
-        ctx.fillRect(0, lineY, canvas.width, 1.5);
+      // Subtle CCTV Grain / Scanlines
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+      for (let k = 0; k < 4; k++) {
+        const lineY = Math.random() * h;
+        ctx.fillRect(0, lineY, w, 1.5);
       }
 
       requestAnimationFrame(drawCityCCTV);
     }
     drawCityCCTV();
-
-    const fbCanvas = document.getElementById('billboardFallbackCanvas');
-    const fbCtx = fbCanvas.getContext('2d');
-    let angle = 0;
-
-    function drawFallback() {
-      fbCanvas.width = fbCanvas.parentElement.clientWidth;
-      fbCanvas.height = fbCanvas.parentElement.clientHeight;
-      
-      fbCtx.fillStyle = '#03080e';
-      fbCtx.fillRect(0, 0, fbCanvas.width, fbCanvas.height);
-
-      angle += 0.03;
-      fbCtx.strokeStyle = '#00f0ff';
-      fbCtx.lineWidth = 3;
-      fbCtx.beginPath();
-      for (let x = 0; x < fbCanvas.width; x += 10) {
-        let y = fbCanvas.height / 2 + Math.sin(x * 0.05 + angle) * 25;
-        if (x === 0) fbCtx.moveTo(x, y);
-        else fbCtx.lineTo(x, y);
-      }
-      fbCtx.stroke();
-
-      fbCtx.fillStyle = '#ff0055';
-      fbCtx.font = 'bold 16px monospace';
-      fbCtx.fillText('LIVE STREAM FEED', 20, 40);
-
-      requestAnimationFrame(drawFallback);
-    }
-    drawFallback();
 
     const video = document.getElementById('hijackVideo');
     const audioToggle = document.getElementById('audioToggle');
@@ -424,7 +459,7 @@
       video.play().then(() => {
         document.getElementById('hijackStatusText').innerText = "STREAM ONLINE";
       }).catch(err => {
-        console.log("Autoplay waiting for click:", err);
+        console.log("Autoplay click required:", err);
       });
     }
     startPlayback();
@@ -436,12 +471,16 @@
       audioToggle.style.color = video.muted ? "var(--phosphor-cyan)" : "#000";
     }
 
-    audioToggle.addEventListener('click', toggleAudio);
+    audioToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleAudio();
+    });
     stage.addEventListener('click', () => {
       startPlayback();
       toggleAudio();
     });
 
+    // Perspective Controls
     const surface = document.getElementById('billboardSurface');
     const rotY = document.getElementById('rotY');
     const rotX = document.getElementById('rotX');
