@@ -40,6 +40,7 @@
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 25px 70px rgba(0, 0, 0, 0.95), 0 0 0 2px #1c2630;
+      cursor: pointer;
     }
 
     #cctvBaseCanvas {
@@ -73,16 +74,20 @@
       box-shadow: 
         0 0 30px rgba(0, 240, 255, 0.35),
         inset 0 0 20px rgba(0, 0, 0, 0.9);
-      background: #000;
+      background: #05080c;
       overflow: hidden;
       position: relative;
     }
 
     .billboard-video-surface video {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       filter: contrast(1.15) saturate(1.25) brightness(1.1);
+      z-index: 1;
     }
 
     .jumbotron-led-grid {
@@ -93,8 +98,8 @@
       height: 100%;
       background: 
         radial-gradient(circle, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.65) 100%),
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0px, rgba(0, 0, 0, 0.3) 2px, transparent 2px, transparent 4px),
-        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.3) 0px, rgba(0, 0, 0, 0.3) 2px, transparent 2px, transparent 4px);
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 2px, transparent 2px, transparent 4px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 2px, transparent 2px, transparent 4px);
       background-size: 100% 100%, 4px 4px, 4px 4px;
       mix-blend-mode: multiply;
       pointer-events: none;
@@ -231,7 +236,7 @@
 </head>
 <body>
 
-  <div class="cctv-stage">
+  <div class="cctv-stage" id="cctvStage" title="Click to start video with sound">
     <canvas id="cctvBaseCanvas"></canvas>
 
     <div class="billboard-3d-quad" id="billboardQuad">
@@ -244,9 +249,11 @@
           muted 
           autoplay 
           preload="auto">
-          <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
-          Your browser does not support live video projection.
+          <source src="paludarium_stream.mp4" type="video/mp4">
+          <source src="https://paludarium.tallkidd.com/paludarium_stream.mp4" type="video/mp4">
         </video>
+
+        <canvas id="billboardFallbackCanvas" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:0;"></canvas>
 
         <div class="jumbotron-led-grid"></div>
         <div class="billboard-bloom"></div>
@@ -271,7 +278,7 @@
           TARGET: JUMBOTRON AD-ARRAY #4
         </div>
         <div style="color: var(--phosphor-cyan);">
-          HIJACK STATUS: <span style="font-weight:bold;">OVERLAY ACTIVE</span>
+          HIJACK STATUS: <span style="font-weight:bold;" id="hijackStatusText">SIGNAL ACTIVE</span>
         </div>
       </div>
     </div>
@@ -299,7 +306,7 @@
     </div>
 
     <div class="deck-buttons">
-      <button class="btn-action" id="audioToggle">AUDIO</button>
+      <button class="btn-action" id="audioToggle">AUDIO: MUTED</button>
       <button class="btn-action" id="resetAngles">RESET</button>
     </div>
   </div>
@@ -379,6 +386,62 @@
     }
     drawCityCCTV();
 
+    const fbCanvas = document.getElementById('billboardFallbackCanvas');
+    const fbCtx = fbCanvas.getContext('2d');
+    let angle = 0;
+
+    function drawFallback() {
+      fbCanvas.width = fbCanvas.parentElement.clientWidth;
+      fbCanvas.height = fbCanvas.parentElement.clientHeight;
+      
+      fbCtx.fillStyle = '#03080e';
+      fbCtx.fillRect(0, 0, fbCanvas.width, fbCanvas.height);
+
+      angle += 0.03;
+      fbCtx.strokeStyle = '#00f0ff';
+      fbCtx.lineWidth = 3;
+      fbCtx.beginPath();
+      for (let x = 0; x < fbCanvas.width; x += 10) {
+        let y = fbCanvas.height / 2 + Math.sin(x * 0.05 + angle) * 25;
+        if (x === 0) fbCtx.moveTo(x, y);
+        else fbCtx.lineTo(x, y);
+      }
+      fbCtx.stroke();
+
+      fbCtx.fillStyle = '#ff0055';
+      fbCtx.font = 'bold 16px monospace';
+      fbCtx.fillText('LIVE STREAM FEED', 20, 40);
+
+      requestAnimationFrame(drawFallback);
+    }
+    drawFallback();
+
+    const video = document.getElementById('hijackVideo');
+    const audioToggle = document.getElementById('audioToggle');
+    const stage = document.getElementById('cctvStage');
+
+    function startPlayback() {
+      video.play().then(() => {
+        document.getElementById('hijackStatusText').innerText = "STREAM ONLINE";
+      }).catch(err => {
+        console.log("Autoplay waiting for click:", err);
+      });
+    }
+    startPlayback();
+
+    function toggleAudio() {
+      video.muted = !video.muted;
+      audioToggle.innerText = video.muted ? "AUDIO: MUTED" : "AUDIO: ON";
+      audioToggle.style.background = video.muted ? "#15222e" : "var(--phosphor-cyan)";
+      audioToggle.style.color = video.muted ? "var(--phosphor-cyan)" : "#000";
+    }
+
+    audioToggle.addEventListener('click', toggleAudio);
+    stage.addEventListener('click', () => {
+      startPlayback();
+      toggleAudio();
+    });
+
     const surface = document.getElementById('billboardSurface');
     const rotY = document.getElementById('rotY');
     const rotX = document.getElementById('rotX');
@@ -410,12 +473,6 @@
       skewY.value = -6;
       scaleVal.value = 0.96;
       updatePerspective();
-    });
-
-    const video = document.getElementById('hijackVideo');
-    document.getElementById('audioToggle').addEventListener('click', () => {
-      video.muted = !video.muted;
-      document.getElementById('audioToggle').innerText = video.muted ? "AUDIO: MUTED" : "AUDIO: ON";
     });
   </script>
 </body>
